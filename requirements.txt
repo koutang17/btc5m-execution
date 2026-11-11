@@ -1,0 +1,7 @@
+# Core runtime: Python 3.12, standard library only.
+# Backtest and analysis:
+pandas>=2.0
+numpy>=1.24
+# Planned (hardening work):
+pytest>=8.0
+# Note: the trading channel is a Node CLI (@binance/agentic-wallet), not a Python package.

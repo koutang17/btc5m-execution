@@ -1,0 +1,96 @@
+{
+  "_readme": "Copy this file to config.json and fill in the blanks. Never put passwords or webhook URLs here - use .env for secrets.",
+  "home": ".",
+  "runtime": {
+    "python": "python",
+    "node": "node",
+    "baw_js": "",
+    "baw_profile": "~/.baw",
+    "proxy_url": "http://127.0.0.1:7897",
+    "timezone_offset": 8,
+    "cloudflared": "",
+    "cloudflared_config": "",
+    "tunnel_name": ""
+  },
+  "paths": {
+    "state": "state",
+    "logs": "logs",
+    "data": "data"
+  },
+  "accounts": [
+    {
+      "id": "A",
+      "name": "main",
+      "asset": "BTC",
+      "base_stake": 1,
+      "wallet_profile": "~/.baw",
+      "baw_js": "",
+      "enabled": true
+    }
+  ],
+  "exchange": {
+    "chain_id": 56,
+    "symbol_suffix": "USDT",
+    "category": [
+      "crypto",
+      "up-down"
+    ],
+    "timeframe": "5 min",
+    "api_base": "https://data-api.binance.vision",
+    "api_fallback": "https://api.binance.com"
+  },
+  "strategy": {
+    "min_streak": 3,
+    "max_losses": 5,
+    "retry_count": 1,
+    "price": 0.51,
+    "carry_price": 0.51,
+    "min_ask": 0.1,
+    "profit_boost_pct": 0,
+    "profit_boost_base": 0,
+    "profit_boost_add": 0,
+    "profit_boost_mode": "dynamic"
+  },
+  "sizing": {
+    "mode": "kelly",
+    "p": 0.52,
+    "frac": 0.25,
+    "max_pct": 0.05,
+    "min_edge": 0.006,
+    "min_stake": 1
+  },
+  "risk": {
+    "dry_run": true,
+    "hard_stop_mode": "drawdown",
+    "hard_stop_drawdown": 20,
+    "hard_stop_loss_cycles": 0
+  },
+  "dashboard": {
+    "bind": "127.0.0.1",
+    "port": 8600,
+    "user": "admin",
+    "refresh_sec": 30,
+    "slow_refresh_sec": 60
+  },
+  "notify": {
+    "enabled": false,
+    "provider": "wecom"
+  },
+  "network": {
+    "proxy": {
+      "host": "127.0.0.1",
+      "port": 7897,
+      "clash_api": "http://127.0.0.1:39797",
+      "selector": "",
+      "nodes": [],
+      "app_exe": "",
+      "helper_exe": "",
+      "kill_names": []
+    }
+  },
+  "backtest": {
+    "data": "data/BTCUSDT_5m.csv",
+    "fill_model": "adverse",
+    "fee_bps": 200
+  }
+}

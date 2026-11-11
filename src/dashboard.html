@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>5m 双账户看板</title>
+<style>
+:root{--bg:#0b0f14;--card:#131a22;--line:#24303d;--txt:#e8eef6;--dim:#8b9bb0;--green:#35d07f;--red:#ff6b6b;--gold:#f6c453}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 18px 48px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
+h1{font-size:20px;margin:0;letter-spacing:.5px}
+.sub{color:var(--dim);font-size:12px;margin-top:4px}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:6px}
+.dot.stale{background:var(--gold)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.cardhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.name{font-size:16px;font-weight:700}
+.badge{font-size:11px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--dim)}
+.badge.ok{color:var(--green);border-color:#1e5c3c}
+.badge.bad{color:var(--red);border-color:#6b2b2b}
+.balance{font-size:30px;font-weight:800;letter-spacing:-.5px}
+.balance small{font-size:13px;color:var(--dim);font-weight:500;margin-left:6px}
+.row{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:7px 0;border-bottom:1px dashed #1c2733}
+.row:last-child{border-bottom:0}
+.k{color:var(--dim)}
+.v{text-align:right}
+.green{color:var(--green)}.red{color:var(--red)}.gold{color:var(--gold)}
+.empty{margin-top:12px;padding:16px;border:1px dashed #2b3a4a;border-radius:10px;text-align:center;color:var(--dim);font-size:13px}
+.empty b{display:block;color:var(--txt);font-size:15px;margin-bottom:4px}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:12px}
+th{color:var(--dim);font-weight:500;text-align:right;padding:6px 4px;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+td{padding:7px 4px;border-bottom:1px solid #1a2430;text-align:right}
+.pos{margin-top:12px}
+.foot{margin-top:18px;color:var(--dim);font-size:11px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.err{color:var(--red);font-size:11px;margin-top:8px}
+.controls{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.modebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:14px}
+.modebar .k{font-size:12px;color:var(--dim)}
+.modebtn{border:1px solid var(--line);background:#1a2430;color:var(--dim);border-radius:8px;padding:6px 12px;font-size:12px}
+.modebtn:hover{background:#22303f}
+.modebtn.on{color:#0b0f14;background:var(--green);border-color:var(--green);font-weight:700}
+.modebtn.on.kelly{background:var(--gold);border-color:var(--gold)}
+.modebtn:disabled{opacity:.5;cursor:wait}
+.modetoggle{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border:1px solid var(--line);background:#1a2430;color:var(--dim);border-radius:8px;font-size:12px;cursor:pointer}
+.modetoggle input{width:15px;height:15px;cursor:pointer}
+.modetoggle.on{color:#0b0f14;background:var(--green);border-color:var(--green);font-weight:700}
+.modetoggle.on.kelly{background:var(--gold);border-color:var(--gold)}
+.modetoggle:has(input:disabled){opacity:.5;cursor:wait}
+.levelbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 14px;margin:-6px 0 14px;font-size:12px}
+.levelbar .k{color:var(--dim)}
+.lvl{padding:2px 8px;border-radius:6px;border:1px solid var(--line)}
+.lvl.on{color:#0b0f14;background:var(--green);border-color:var(--green);font-weight:700}
+.lvl.off{color:var(--dim)}
+.lvl small{display:block;opacity:.75;margin:2px 0 0;font-weight:400;white-space:nowrap}
+button{cursor:pointer;border:1px solid var(--line);background:#1a2430;color:var(--txt);border-radius:8px;padding:7px 10px;font-size:12px}
+button:hover{background:#22303f}
+button.warn{color:var(--red);border-color:#5a2a2a}
+button.on{color:var(--green);border-color:#1e5c3c}
+.global{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.badge.paused{color:var(--gold);border-color:#6b5420}
+.settings{margin-top:12px;border-top:1px dashed #1c2733;padding-top:10px}
+.settings summary{cursor:pointer;color:var(--dim);font-size:12px}
+.cfg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.cfg label{font-size:11px;color:var(--dim);display:flex;flex-direction:column;gap:4px}
+.cfg input{padding:7px;border-radius:7px;border:1px solid var(--line);background:#0e151d;color:var(--txt);font-size:13px}
+.cfg button{align-self:end;padding:8px}
+.market{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:16px}
+.market .metric{display:flex;flex-direction:column;gap:4px}
+.market .lbl{font-size:11px;color:var(--dim)}
+.market .val{font-size:18px;font-weight:700}
+.market .note{font-size:11px;color:var(--dim)}
+.health{display:flex;align-items:center;gap:10px;background:#101821;border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin:-4px 0 16px;font-size:12px;color:var(--dim);flex-wrap:wrap}
+.health .dot{flex:0 0 auto}
+.health .txt{flex:1;min-width:180px}
+.health-detail{font-size:11px;color:var(--dim);margin:-8px 0 16px 20px;white-space:pre-wrap;line-height:1.5}
+@media(max-width:860px){.market{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>5m 双账户看板</h1>
+    <div class="sub">实时余额 / 持仓 / 策略状态 · 空仓时保持等待</div>
+  </div>
+  <div class="global">
+    <button data-cmd="pause" data-acct="ALL">全部暂停</button>
+    <button data-cmd="resume" data-acct="ALL">全部继续</button>
+    <a href="/logout" style="color:var(--dim);font-size:12px;text-decoration:none;padding:7px 10px;border:1px solid var(--line);border-radius:8px">退出</a>
+    <button id="refreshNow">刷新</button>
+    <button id="resumeRefresh" style="display:none">恢复刷新</button>
+    <span id="roleBadge" class="badge">—</span>
+    <span class="sub"><span id="dot" class="dot"></span><span id="updated">加载中…</span></span>
+  </div>
+</header>
+<div class="market" id="marketPanel">
+  <div class="metric"><span class="lbl">BTC 价格</span><span class="val" id="mkPrice">—</span><span class="note">5m 最新收盘</span></div>
+  <div class="metric"><span class="lbl">BTC 连续</span><span class="val" id="mkStreak">—</span><span class="note">平局不算方向</span></div>
+  <div class="metric"><span class="lbl">BTC 信号</span><span class="val" id="mkSignal">—</span><span class="note sigNote">3连反向</span></div>
+  <div class="metric"><span class="lbl">下一轮倒计时</span><span class="val" id="mkCountdown">—</span><span class="note">北京时间</span></div>
+</div>
+<div class="market" id="marketPanelEth">
+  <div class="metric"><span class="lbl">ETH 价格</span><span class="val" id="mkEthPrice">—</span><span class="note">5m 最新收盘</span></div>
+  <div class="metric"><span class="lbl">ETH 连续</span><span class="val" id="mkEthStreak">—</span><span class="note">平局不算方向</span></div>
+  <div class="metric"><span class="lbl">ETH 信号</span><span class="val" id="mkEthSignal">—</span><span class="note sigNote">3连反向</span></div>
+  <div class="metric"><span class="lbl">ETH 倒计时</span><span class="val" id="mkEthCountdown">—</span><span class="note">北京时间</span></div>
+</div>
+<div class="health" id="healthBar">
+  <span class="dot" id="wdDot"></span>
+  <span class="txt" id="wdText">守护程序加载中…</span>
+  <button id="wdCheck">立即检查</button>
+</div>
+<div class="health-detail" id="wdDetail"></div>
+<div class="modebar" id="modeBar" style="display:none">
+  <span class="k">策略开关</span>
+  <label class="modetoggle" id="tglMartingale"><input type="checkbox" data-mode="martingale"> 马丁 1-2-4-8-16</label>
+  <label class="modetoggle" id="tglKelly"><input type="checkbox" data-mode="kelly"> 凯利（分数）</label>
+  <span id="modeNow" class="badge">—</span>
+  <span id="modeCounts" style="font-size:11px;color:var(--dim)"></span>
+  <span id="modeMsg" style="font-size:11px;color:var(--dim)"></span>
+</div>
+<div class="levelbar" id="levelBar"><span class="k">分档表加载中…</span></div>
+<div class="levelbar" id="fillBar"><span class="k">成交统计加载中…</span></div>
+<div class="grid" id="cards"></div>
+<div class="foot">
+  <span>数据来源：币安 Agentic Wallet + Predict</span>
+  <span>每5秒刷新 · 无持仓时显示“空仓等待信号”</span>
+</div>
+</div>
+<script>
+function fmt(n,d){d=(d===undefined)?2:d;return Number(n||0).toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function sign(n){return Number(n||0)>=0?'+':'';}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function accCard(a){
+  var ok=(a.status||'').toUpperCase()==='CONNECTED';
+  var pos=a.positions||[];
+  var pending=a.pending_claim||[];
+  var all=pos;
+  var pnlClass=(Number(a.today_pnl||0)>=0)?'green':'red';
+  var posHtml='';
+  if(all.length){
+    posHtml='<div class="pos"><table><thead><tr><th>市场/方向</th><th>份数</th><th>成本</th><th>浮盈</th><th>状态</th></tr></thead><tbody>';
+    all.forEach(function(p){
+      var pnl=Number(p.unrealizedPnl||0);
+      var title=String(p.marketTopicTitle||'').replace('Bitcoin Up or Down - ','');
+      posHtml+='<tr><td>'+esc(title)+'<br><span class="k">'+esc(p.outcomeName||'')+'</span></td><td>'+fmt(p.shares,2)+'</td><td>'+fmt(p.totalCost,2)+'</td><td class="'+(pnl>=0?'green':'red')+'">'+sign(pnl)+fmt(pnl,2)+'</td><td class="red">'+esc(p.positionStatus||p.result||'')+'</td></tr>';
+    });
+    posHtml+='</tbody></table></div>';
+  }else{
+    posHtml='<div class="empty"><b>空仓 · 等待信号</b>没有持仓时保持不动，出现信号/成交后自动更新</div>';
+  }
+  var st=a.state||{};
+  var c=a.config||{name:a.label,asset:'BTC',min_streak:3,max_losses:5,base_stake:1,retry_count:1,profit_boost_pct:50,profit_boost_base:100,profit_boost_add:1,profit_boost_mode:'dynamic',price:0.4,carry_price:0.45,hard_stop_mode:'none',hard_stop_drawdown:0,hard_stop_loss_cycles:0};
+  var isKelly=(c.sizing_mode==='kelly');
+  var ml=Number(c.max_losses||5), stepNow=Number(st.step||0), remain=Math.max(0,ml-stepNow);
+  var baseStake=Number(c.base_stake||1);
+  var activeNow=Boolean(st.active||st.pending);
+  var priceNow=Number(c.price||0.5);
+  var kmin=Number(c.kelly_min_stake||1);
+  var bankNow=Number(st.bankroll||a.usdt||0);
+  // 凯利每一档的 p 和分数由分档表决定；这里直接使用机器人算出的实际下一单
+  var currentStake=activeNow?Number(st.stake||0):(isKelly?Number(st.stake||0):baseStake*Math.pow(2,stepNow));
+  if(!currentStake) currentStake=isKelly?kmin:baseStake*Math.pow(2,stepNow);
+  var curStake=currentStake;
+  var exposure=curStake*(Math.pow(2,remain)-1);
+  var riskHtml;
+  if(isKelly){
+    var kLvl=Number(st.level||c.min_streak||0);
+    var kPct=(st.kelly_p!=null)?Number(st.kelly_p)*100:0;
+    var kFrac=(st.kelly_frac!=null)?Number(st.kelly_frac)*100:0;
+    var kCap=Number(c.kelly_max_pct||0.05)*100;
+    riskHtml='<div class="row"><span class="k">凯利仓位</span><span class="v">L'+kLvl+' · p='+fmt(kPct,1)+'% · '+fmt(kFrac,1)+'%分数 · 单注上限'+fmt(kCap,1)+'%</span></div>'+
+      '<div class="row"><span class="k">每注</span><span class="v">'+fmt(curStake,2)+'u'+(bankNow?' · 余额'+fmt(bankNow,2)+'u':'')+'</span></div>'+
+      '<div class="row"><span class="k">加仓规则</span><span class="v green">不加倍 · 连亏不改档</span></div>';
+  }else{
+    riskHtml='<div class="row"><span class="k">风控</span><span class="v">第'+stepNow+'/'+ml+'单 · 再亏'+remain+'次止损 · 敞口'+fmt(exposure,2)+'u</span></div>';
+  }
+  if(isKelly){
+    var kb=Number(st.kelly_bets||0), kw=Number(st.kelly_wins||0), kl=Number(st.kelly_losses||0);
+    riskHtml+='<div class="row"><span class="k">凯利统计</span><span class="v">'+kb+' 单 · 胜 '+kw+' · 负 '+kl+(kb?' · '+(100*kw/kb).toFixed(1)+'%':'')+'</span></div>';
+  }else{
+    riskHtml+='<div class="row"><span class="k">马丁周期</span><span class="v">共 '+Number(st.cycle_count||0)+' 轮 · 胜 '+Number(st.win_cycles||0)+' · 止损 '+Number(st.stop_cycles||0)+'</span></div>';
+  }
+  if(!isKelly){
+    riskHtml+='<div class="row"><span class="k">6连风控</span><span class="v '+(st.six_block?'red':'green')+'">'+(st.six_block?'拦截中':'正常')+'</span></div>';
+  }else{
+    riskHtml+='<div class="row"><span class="k">6连风控</span><span class="v dim">未启用（仅马丁）</span></div>';
+  }
+  var hs='关闭';
+  if(c.hard_stop_mode==='drawdown') hs='回撤 '+fmt(c.hard_stop_drawdown,2)+'u';
+  if(c.hard_stop_mode==='loss_cycles') hs='连亏 '+Number(c.hard_stop_loss_cycles||0)+' 周期';
+  var hsState=st.hard_stop_active?' · <span class="red">已触发 '+esc(st.hard_stop_reason||'')+'</span>':'';
+  riskHtml+='<div class="row"><span class="k">硬止损</span><span class="v">'+hs+hsState+'</span></div>';
+  var latHtml='';
+  if(st.last_latency){
+    var lt=Number(st.last_latency.total||0), qt=Number(st.last_latency.quote||0), bt=Number(st.last_latency.before||0);
+    latHtml='<div class="row"><span class="k">最近延迟</span><span class="v '+(lt>8?'red':(lt>5?'gold':'green'))+'">总 '+fmt(lt,1)+'s · 等待 '+fmt(bt,1)+'s · quote '+fmt(qt,1)+'s</span></div>';
+  }
+  var pend='';
+  if(st.pending){
+    pend='<div class="row"><span class="k">当前挂单</span><span class="v"><span class="red">挂单</span> '+esc(st.pending.side)+' '+fmt(st.pending.stake,2)+'u @ '+esc(st.pending.price)+' · '+esc(st.pending.mode||'')+'</span></div>'+
+      '<div class="row"><span class="k">订单号</span><span class="v">'+esc(st.pending.orderId||'')+
+      (st.pending.orderId?' <button class="warn" data-cancel="'+esc(st.pending.orderId)+'" data-scope="order" data-acct="'+esc(a.id)+'">终止本次下单</button>'+
+        '<button class="warn" style="margin-left:12px" data-cancel="'+esc(st.pending.orderId)+'" data-scope="cycle" data-acct="'+esc(a.id)+'">终止本周期</button>':'')+'</span></div>';
+  }
+  var last='';
+  if(a.last_order){last='<div class="row"><span class="k">最近订单</span><span class="v"><span class="red">'+esc(a.last_order.status)+'</span> '+esc(a.last_order.outcome||'')+' '+fmt(a.last_order.filledShareQty,2)+'份</span></div>';}
+  var err=a.error?'<div class="err">'+esc(a.error)+'</div>':'';
+  var hideM=isKelly?' style="display:none"':'';
+  var hideK=isKelly?'':' style="display:none"';
+  var sumTxt=isKelly
+    ? ('参数设置 · 凯利 / '+c.min_streak+'连起 / 分档p和分数按档设置 / 门槛'+fmt(Number(c.kelly_min_edge||0.006)*100,1)+'% / 上限'+fmt(Number(c.kelly_max_pct||0.05)*100,1)+'% / '+fmt(c.price,2)+'→'+fmt(c.carry_price,2))
+    : ('参数设置 · 首单'+fmt(c.base_stake,2)+'u / '+c.min_streak+'连 / 收益'+Number(c.profit_boost_pct||0)+'%→+'+Number(c.profit_boost_add||0)+'连 / 止损'+c.max_losses+' / 后档顺延'+c.retry_count+'次 / '+fmt(c.price,2)+'→'+fmt(c.carry_price,2));
+  var am=(a.mode||'none');
+  var modeHtml='<div class="row"><span class="k">账户策略</span><span class="v"><select data-acct-mode="'+esc(a.id)+'" '+(currentRole!=='master'?'disabled':'')+'>'+
+    '<option value="none"'+(am==='none'?' selected':'')+'>停止</option>'+
+    '<option value="martingale"'+(am==='martingale'?' selected':'')+'>马丁</option>'+
+    '<option value="kelly"'+(am==='kelly'?' selected':'')+'>凯利</option></select>'+
+    ' <span class="dim">'+(am==='none'?'未运行':am==='kelly'?'凯利独立进程':'马丁独立进程')+'</span></span></div>';
+  var notifyHtml='<div class="row"><span class="k">登录链接</span><span class="v"><label style="cursor:pointer"><input type="checkbox" data-login-notify="'+esc(a.id)+'" '+(a.login_notify?'checked':'')+' '+(currentRole!=='master'?'disabled':'')+' style="vertical-align:middle;margin-right:5px">掉线时发送本账户登录链接</label></span></div>';
+  var _lh=a.login_health||{}; var _lhState=String(_lh.state||'UNKNOWN'); var _lhTs=Number(_lh.ts||0);
+  var _lhAge=_lhTs?Math.round((Date.now()/1000-_lhTs)):999999;
+  var _lhTxt=_lhState==='OK'?'正常':(_lhState==='AUTH'?'登录失效':(_lhState==='NETWORK'?'网络异常':'未知'));
+  var healthHtml='<div class="row"><span class="k">BAW检查</span><span class="v '+((_lhState==='NETWORK'||_lhState==='AUTH')?'red':'green')+'">'+_lhTxt+(_lhTs?' · '+(new Date(_lhTs*1000)).toLocaleTimeString('zh-CN',{hour12:false}):' · 暂无')+'</span></div>';
+  var cfgHtml='<div class="settings"><details><summary>'+sumTxt+'</summary>'+
+    '<div class="cfg">'+
+      '<label style="grid-column:1/-1">账户显示名<input type="text" maxlength="20" data-f="name" value="'+esc(c.name||a.label)+'"></label>'+
+      '<label>交易标的<select data-f="asset"><option value="BTC"'+(c.asset!=='ETH'?' selected':'')+'>BTC 5m</option><option value="ETH"'+(c.asset==='ETH'?' selected':'')+'>ETH 5m</option></select></label>'+
+      '<label>基础触发信号连数<input type="number" min="2" max="8" step="1" data-f="min_streak" value="'+c.min_streak+'"></label>'+
+      '<label'+hideK+'>单注上限(%)<input type="number" min="1" max="20" step="0.5" data-f="kelly_max_pct_pct" value="'+Number((c.kelly_max_pct||0.05)*100).toFixed(1)+'"></label>'+
+      '<label'+hideK+'>最小注(u)<input type="number" min="1" max="10" step="0.1" data-f="kelly_min_stake" value="'+Number(c.kelly_min_stake||1)+'"></label>'+
+    '<label'+hideK+'>入场门槛(%)<input type="number" min="0" max="5" step="0.1" data-f="kelly_min_edge_pct" value="'+Number((c.kelly_min_edge||0.006)*100).toFixed(1)+'"></label>'+
+      '<label'+hideM+'>止损连亏次数<input type="number" min="1" max="12" step="1" data-f="max_losses" value="'+c.max_losses+'"></label>'+
+      '<label'+hideM+'>首单金额(u)<input type="number" min="1" max="5" step="0.1" data-f="base_stake" value="'+Number(c.base_stake||1)+'"></label>'+
+      '<label'+hideM+'>后续档位顺延次数<input type="number" min="0" max="10" step="1" data-f="retry_count" value="'+Number(c.retry_count||0)+'"></label>'+
+      '<label'+hideM+'>收益门槛(%)<input type="number" min="0" max="1000" step="0.1" data-f="profit_boost_pct" value="'+Number(c.profit_boost_pct||0)+'"></label>'+
+      '<label'+hideM+'>收益基数(U)<input type="number" min="0" step="1" data-f="profit_boost_base" value="'+Number(c.profit_boost_base||0)+'"></label>'+
+      '<label'+hideM+'>达标后信号加几根<input type="number" min="0" max="3" step="1" data-f="profit_boost_add" value="'+Number(c.profit_boost_add||0)+'"></label>'+
+      '<label'+hideM+'>达标模式<select data-f="profit_boost_mode"><option value="dynamic"'+(c.profit_boost_mode!=='latched'?' selected':'')+'>动态：跌回门槛恢复</option><option value="latched"'+(c.profit_boost_mode==='latched'?' selected':'')+'>锁定：达标后保持</option></select></label>'+
+      '<label>初始限价<input type="number" min="0.1" max="0.99" step="0.01" data-f="price" value="'+c.price+'"></label>'+
+      '<label>未成交顺延限价<input type="number" min="0.1" max="0.99" step="0.01" data-f="carry_price" value="'+c.carry_price+'"></label>'+
+      '<label>硬止损方式<select data-f="hard_stop_mode">'+
+        '<option value="none"'+(c.hard_stop_mode==='none'?' selected':'')+'>关闭</option>'+
+        '<option value="drawdown"'+(c.hard_stop_mode==='drawdown'?' selected':'')+'>最大回撤(u)</option>'+
+        '<option value="loss_cycles"'+(c.hard_stop_mode==='loss_cycles'?' selected':'')+'>连续亏损周期</option></select></label>'+
+      '<label>最大回撤(u)<input type="number" min="0" step="0.01" data-f="hard_stop_drawdown" value="'+Number(c.hard_stop_drawdown||0)+'"></label>'+
+      '<label>最多连续亏损周期<input type="number" min="0" step="1" data-f="hard_stop_loss_cycles" value="'+Number(c.hard_stop_loss_cycles||0)+'"></label>'+
+      '<button data-cfg="'+esc(a.id)+'">保存参数</button>'+
+    '</div></details></div>';
+  var _hs=String((a.login_health||{}).state||'');
+  var _badgeTxt=a.stopped?'已停止':(a.paused?'已暂停':(_hs==='NETWORK'?'网络异常':(_hs==='AUTH'?'登录失效':(a.status||'UNKNOWN'))));
+  var _badgeClass=a.stopped?'bad':(a.paused?'paused':((_hs==='NETWORK'||_hs==='AUTH')?'bad':(ok?'ok':'bad')));
+  return '<div class="card">'+
+    '<div class="cardhead"><div class="name">#'+esc(a.num||a.id)+' '+esc(a.label)+' · '+(c.asset==='ETH'?'ETH':'BTC')+' 5m</div><div class="badge '+_badgeClass+'">'+esc(_badgeTxt)+'</div></div>'+
+    '<div class="balance">'+fmt(a.usdt)+'<small>USDT</small></div>'+
+    '<div class="row"><span class="k">BNB</span><span class="v">'+fmt(a.bnb,6)+'</span></div>'+
+    '<div class="row"><span class="k">今日已实现</span><span class="v '+pnlClass+'">'+sign(a.today_pnl)+fmt(a.today_pnl)+'u ('+sign(a.today_pct)+fmt(a.today_pct,1)+'%)</span></div>'+
+    '<div class="row"><span class="k">策略累计</span><span class="v '+(Number(st.cum_pnl||0)>=0?'green':'red')+'">'+sign(st.cum_pnl)+fmt(st.cum_pnl)+'u</span></div>'+
+    modeHtml+notifyHtml+healthHtml+
+    (isKelly ? (
+      '<div class="row"><span class="k">本次注额</span><span class="v">'+fmt(currentStake,2)+'u</span></div>'+
+      '<div class="row"><span class="k">入场门槛</span><span class="v">p−0.51 ≥ '+fmt(Number(c.kelly_min_edge||0.006)*100,1)+'%</span></div>'
+    ) : (
+      '<div class="row"><span class="k">首单金额</span><span class="v">'+fmt(baseStake,2)+'u</span></div>'+
+      '<div class="row"><span class="k">当前档位</span><span class="v">第'+(Number(st.step||0)+1)+'单 · '+fmt(currentStake,2)+'u</span></div>'+
+      '<div class="row"><span class="k">周期统计</span><span class="v">盈利 '+Number(st.win_cycles||0)+' · 跳过 '+Number(st.skip_cycles||0)+' · 止损 '+Number(st.stop_cycles||0)+' · 合计 '+(Number(st.win_cycles||0)+Number(st.skip_cycles||0)+Number(st.stop_cycles||0))+'</span></div>'+
+      '<div class="row"><span class="k">当前信号门槛</span><span class="v">'+(Number(c.min_streak||3)+(st.profit_boost_active?Number(c.profit_boost_add||0):0))+'连'+(st.profit_boost_active?' · <span class="red">收益达标</span>':'')+' · 累计收益率 '+fmt(st.profit_boost_ratio||0,1)+'%</span></div>'
+    ))+
+    riskHtml+latHtml+pend+last+posHtml+err+cfgHtml+
+    '<div class="controls">'+
+      (a.stopped
+        ? '<button data-cmd="start" data-acct="'+esc(a.id)+'">启动</button>'
+        : '<button data-cmd="pause" data-acct="'+esc(a.id)+'">暂停</button>'+
+          '<button data-cmd="resume" data-acct="'+esc(a.id)+'">继续</button>'+
+          '<button class="warn" data-cmd="stop" data-acct="'+esc(a.id)+'">停止</button>')+
+      (all.length?'<button class="warn" data-close="'+esc(a.id)+'">平仓</button>':'')+
+    '</div>'+
+    (a.stopped?'<div class="err">已停止，点“启动”重新拉起机器人</div>':'')+
+    '</div>';
+}
+var uiPaused=false, currentRole='master', marketData=null, ethMarketData=null;
+function fmtCountdown(sec){
+  sec=Math.max(0,Math.floor(sec));
+  var m=Math.floor(sec/60), s=sec%60;
+  return (m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+}
+function renderWatchdog(w){
+  var txt=document.getElementById('wdText'), dot=document.getElementById('wdDot');
+  if(!w){ txt.textContent='守护程序暂无状态'; dot.className='dot stale'; return; }
+  var ok=!!w.ok, issues=w.issues||[];
+  txt.textContent='守护程序 '+(ok?'正常':'异常')+' · '+(w.time||'—')+(issues.length?(' · '+issues.join('；')):'');
+  dot.className='dot'+(ok?'':' stale');
+  var det=document.getElementById('wdDetail');
+  if(det){
+    var lines=(w.checks||[]).map(function(c){return (c.ok?'✓':'✗')+' '+c.name+'：'+(c.detail||'');});
+    if(issues.length) lines.push('问题：'+issues.join('；'));
+    det.textContent=lines.join('　　');
+  }
+}
+function renderMarket(m,eth){
+  marketData=m; ethMarketData=eth;
+  function paint(pre,x){
+    var ids=pre?{p:'mkEthPrice',s:'mkEthStreak',g:'mkEthSignal',c:'mkEthCountdown'}:{p:'mkPrice',s:'mkStreak',g:'mkSignal',c:'mkCountdown'};
+    if(!x){ document.getElementById(ids.p).textContent='—'; document.getElementById(ids.s).textContent='—'; document.getElementById(ids.g).textContent='—'; return; }
+    document.getElementById(ids.p).textContent=fmt(x.price,2);
+    var dir=x.dir==='UP'?'上涨':(x.dir==='DOWN'?'下跌':'平局');
+    document.getElementById(ids.s).textContent=(x.streak||0)+'根'+dir;
+    var sig=x.signal_3, el=document.getElementById(ids.g);
+    el.textContent=sig?(sig==='DOWN'?'买跌':'买涨'):'未触发';
+    el.className='val '+(sig?'gold':'');
+    document.getElementById(ids.c).textContent=fmtCountdown((Number(x.next_ts||0)-Date.now())/1000);
+  }
+  paint(false,m); paint(true,eth);
+}
+setInterval(function(){
+  if(marketData) document.getElementById('mkCountdown').textContent=fmtCountdown((Number(marketData.next_ts||0)-Date.now())/1000);
+  if(ethMarketData) document.getElementById('mkEthCountdown').textContent=fmtCountdown((Number(ethMarketData.next_ts||0)-Date.now())/1000);
+},1000);
+var uiPaused=false, currentRole='master';
+function applyRole(role){
+  currentRole=role||'master';
+  var viewer=currentRole==='viewer';
+  var badge=document.getElementById('roleBadge');
+  if(badge){
+    if(viewer){ badge.style.display='none'; badge.textContent=''; }
+    else { badge.style.display=''; badge.textContent='主密码'; badge.className='badge ok'; }
+  }
+  var vb=document.getElementById('viewerBanner');
+  if(vb) vb.remove();
+  document.querySelectorAll('button[data-cmd],button[data-cfg],button[data-cancel],button[data-close],#wdCheck').forEach(function(b){ b.style.display=viewer?'none':''; });
+  document.querySelectorAll('.cfg input,.cfg select').forEach(function(i){ i.disabled=viewer; });
+}
+function setUiPaused(v){
+  uiPaused=v;
+  var b=document.getElementById('resumeRefresh');
+  if(b) b.style.display=v?'inline-block':'none';
+  if(v) document.getElementById('updated').textContent='编辑参数中，刷新已暂停';
+}
+async function tick(){
+  if(uiPaused) return;
+  try{
+    var r=await fetch('/api/status',{cache:'no-store'});
+    var d=await r.json();
+    document.getElementById('cards').innerHTML=(d.accounts||[]).map(accCard).join('');
+    applyRole(d.role);
+    renderMarket(d.market||null,d.market_eth||null);
+    renderWatchdog(d.watchdog||null);
+    renderMode(d.bot||null);
+    var accs0=d.accounts||[];
+    if(accs0.length){ var ms0=Number((accs0[0].config||{}).min_streak||3); document.querySelectorAll('.sigNote').forEach(function(x){x.textContent=ms0+'连反向';}); }
+    renderLevels(d.levels||[],d.levels_meta||{});
+    renderFill(d.fill_stats||null);
+    if(d.counters){
+      var cm=d.counters.martingale||{}, ck=d.counters.kelly||{};
+      document.getElementById('modeCounts').textContent='马丁 '+Number(cm.cycles||0)+'轮/胜'+Number(cm.wins||0)+' ｜ 凯利 '+Number(ck.bets||0)+'单/胜'+Number(ck.wins||0)+'负'+Number(ck.losses||0)+(Number(ck.bets)?'/'+Number(ck.rate||0).toFixed(1)+'%':'');
+    }
+    var t=new Date(d.ts*1000);
+    document.getElementById('updated').textContent='更新 '+t.toLocaleTimeString('zh-CN',{hour12:false});
+    document.getElementById('dot').className='dot'+(d.stale?' stale':'');
+  }catch(e){
+    document.getElementById('updated').textContent='连接失败，重试中…';
+    document.getElementById('dot').className='dot stale';
+  }
+}
+function renderFill(s){
+  var el=document.getElementById('fillBar'); if(!el) return;
+  if(!s){ el.innerHTML='<span class="k">成交统计不可用</span>'; return; }
+  var rate=(s.fill_rate==null)?'—':Number(s.fill_rate).toFixed(1)+'%';
+  var ask=(s.avg_ask==null)?'—':Number(s.avg_ask).toFixed(3);
+  var fil=(s.avg_fill==null)?'—':Number(s.avg_fill).toFixed(3);
+  var good=(s.fill_rate!=null && s.fill_rate>=80);
+  el.innerHTML='<span class="k">凯利成交 · '+esc(String(s.since).slice(5,16))+' 起</span>'+
+    '<span class="lvl off">挂单 '+s.orders+'</span>'+
+    '<span class="lvl '+(good?'on':'off')+'">成交 '+s.fills+' ('+rate+')</span>'+
+    '<span class="lvl off">均卖价 '+ask+'</span>'+
+    '<span class="lvl off">均成交 '+fil+'</span>'+
+    '<span class="lvl off">胜 '+s.win+' · 负 '+s.loss+' · 跳过 '+s.skip+'</span>';
+}
+function renderLevels(ls,meta){
+  var el=document.getElementById('levelBar'); if(!el) return;
+  if(!ls.length){ el.innerHTML='<span class="k">分档表未加载</span>'; return; }
+  meta=meta||{};
+  var fresh=!!meta.fresh_today;
+  var upd=meta.updated_at?esc(meta.updated_at):'未知';
+  var html='<span class="k">分档胜率（14 天 + 90 天各半）· 勾选 = 允许交易</span>'+
+    '<span class="lvl '+(fresh?'on':'off')+'">'+(fresh?'今日已更新 ':'今日未更新 · 上次 ')+upd+'</span>';
+  ls.forEach(function(x){
+    var on=!!x.trade, en=(x.enabled!==false);
+    var t14=(x.p14!=null)?(Number(x.p14)*100).toFixed(1)+'%':'—';
+    var t90=(x.p90!=null)?(Number(x.p90)*100).toFixed(1)+'%':'—';
+    html+='<label class="lvl '+((on&&en)?'on':'off')+'">'+
+          '<input type="checkbox" data-lv="'+x.L+'" '+(en?'checked':'')+' style="margin-right:4px;vertical-align:middle">'+
+          'L'+x.L+' '+(Number(x.p)*100).toFixed(1)+'%'+
+          '<input type="number" data-frac="'+x.L+'" min="0" max="100" step="0.5" value="'+((Number(x.frac||0.3)*100).toFixed(1))+'" title="本档凯利分数(%)" style="width:52px;margin-left:6px;padding:2px 4px;font-size:11px">%'+
+          ((on&&en)?' ✓':' ✗')+
+          '<small>14天 '+t14+' · 90天 '+t90+' · n='+(x.n90!=null?x.n90:x.n)+'</small></label>';
+  });
+  html+='<span class="k">✓ = 会交易 · 取消勾选立即停用该档</span>';
+  el.innerHTML=html;
+}
+document.addEventListener('change', function(e){
+  var cb=e.target;
+  if(!cb || cb.type!=='checkbox' || !cb.getAttribute('data-lv')) return;
+  fetch('/api/levels',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({level:Number(cb.getAttribute('data-lv')),enabled:cb.checked})})
+    .then(function(r){return r.json();})
+    .then(function(){ if(typeof tick==='function') tick(); })
+    .catch(function(){});
+});
+document.addEventListener('change', function(e){
+  var f=e.target;
+  if(!f || f.getAttribute('data-frac')===null) return;
+  var L=Number(f.getAttribute('data-frac'));
+  var cb=document.querySelector('input[data-lv="'+L+'"]');
+  var pct=Math.max(0,Math.min(100,Number(f.value||0)));
+  fetch('/api/levels',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({level:L,enabled:cb?cb.checked:true,frac_pct:pct})})
+    .then(function(r){return r.json();})
+    .then(function(){ if(typeof tick==='function') tick(); })
+    .catch(function(){});
+});
+var MODE_NAME={martingale:'马丁',kelly:'凯利',none:'未运行',mixed:'异常'};
+var currentMode='none';
+function renderMode(b){
+  var bar=document.getElementById('modeBar');
+  if(!bar) return;
+  var mode=(b&&b.mode)||'none';
+  currentMode=mode;
+  var boxes=bar.querySelectorAll('input[data-mode]');
+  boxes.forEach(function(x){
+    var on=x.getAttribute('data-mode')===mode;
+    x.checked=on;
+    var lab=x.closest('label');
+    if(lab) lab.className='modetoggle'+(on?' on':'')+(on&&mode==='kelly'?' kelly':'');
+    x.disabled=(currentRole!=='master');
+  });
+  var badge=document.getElementById('modeNow');
+  badge.textContent=MODE_NAME[mode]||mode;
+  var good=(mode==='martingale'||mode==='kelly');
+  badge.className='badge '+(good?'ok':'bad');
+  if(!document.getElementById('modeMsg').textContent){
+    document.getElementById('modeMsg').textContent=(b&&b.detail)?b.detail:'';
+  }
+}
+async function switchMode(mode,on){
+  if(currentRole!=='master'){ alert('受限密码，不能操作'); return; }
+  if(!on && currentMode!==mode){ tick(); return; }
+  var target=on?mode:'none';
+  var cur=MODE_NAME[currentMode]||currentMode;
+  var txt=on?'开启「'+(MODE_NAME[mode]||mode)+'」？\n会停掉另一个策略；有持仓时会拒绝。':'关闭「'+cur+'」并停止所有交易机器人？\n有持仓时会拒绝。';
+  if(!confirm(txt)){ tick(); return; }
+  if(on){
+    document.querySelectorAll('input[data-mode]').forEach(function(x){
+      if(x.getAttribute('data-mode')!==mode) x.checked=false;
+    });
+  }
+  var boxes=document.querySelectorAll('input[data-mode]'); boxes.forEach(function(x){x.disabled=true;});
+  var msg=document.getElementById('modeMsg');
+  msg.textContent=(on?'启动中…':'停止中…')+'（最长等 3 分钟）';
+  try{
+    var r=await fetch('/api/mode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:target})});
+    var d=await r.json();
+    msg.textContent=(d.ok?(on?'已启动':'已停止'):(on?'启动未完成':'停止未完成'))+' · '+(d.output||'').replace(/\n/g,' ｜ ');
+    if(!d.ok) alert(d.error||d.output||'操作失败');
+    tick();
+  }catch(e){
+    msg.textContent='请求失败: '+e.message;
+    tick();
+  }finally{
+    boxes.forEach(function(x){x.disabled=false;});
+    setTimeout(function(){ msg.textContent=''; },15000);
+  }
+}
+async function setAccountMode(account,mode){
+  if(currentRole!=='master'){ alert('受限密码，不能操作'); return; }
+  var label={none:'停止',martingale:'马丁',kelly:'凯利'}[mode]||mode;
+  if(!confirm('把账户 '+account+' 的策略改为「'+label+'」？\n有持仓/挂单时会拒绝。')){ tick(); return; }
+  try{
+    var r=await fetch('/api/account_mode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({account:account,mode:mode})});
+    var d=await r.json();
+    if(!r.ok) alert(d.error||d.message||'切换失败');
+    tick();
+  }catch(e){ alert('请求失败: '+e.message); tick(); }
+}
+async function setLoginNotify(account,enabled){
+  if(currentRole!=='master'){ alert('受限密码，不能操作'); tick(); return; }
+  try{
+    var r=await fetch('/api/login_notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({account:account,enabled:enabled})});
+    var d=await r.json();
+    if(!r.ok) alert(d.error||'保存失败');
+    tick();
+  }catch(e){ alert('请求失败: '+e.message); tick(); }
+}
+async function sendCmd(account,action){
+  if(currentRole!=='master'){ alert('受限密码，不能操作'); return; }
+  if(action==='stop' && !confirm('确定停止 '+account+' 机器人？有持仓时会被拒绝。')) return;
+  try{
+    var r=await fetch('/api/command',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:action,account:account})});
+    var d=await r.json();
+    if(!r.ok) alert(d.error||'命令失败');
+    tick();
+  }catch(e){ alert('命令发送失败'); }
+}
+document.addEventListener('focusin',function(e){
+  if(e.target.matches('input[data-f]')) setUiPaused(true);
+});
+document.addEventListener('input',function(e){
+  if(e.target.matches('input[data-f]')) setUiPaused(true);
+});
+document.addEventListener('toggle',function(e){
+  if(e.target.matches('details') && e.target.open) setUiPaused(true);
+},true);
+document.getElementById('wdCheck').addEventListener('click',async function(){
+  if(currentRole!=='master'){ alert('无权限'); return; }
+  var b=document.getElementById('wdCheck'); b.disabled=true; b.textContent='检查中…';
+  try{
+    var r=await fetch('/api/command',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'watchdog'})});
+    var d=await r.json();
+    if(d.watchdog) renderWatchdog(d.watchdog);
+    tick();
+  }catch(e){ alert('检查失败'); }
+  finally{ b.disabled=false; b.textContent='立即检查'; }
+});
+document.getElementById('refreshNow').addEventListener('click',function(){ setUiPaused(false); tick(); });
+document.getElementById('resumeRefresh').addEventListener('click',function(){ setUiPaused(false); tick(); });
+async function closePosition(account){
+  if(currentRole!=='master'){ alert('无权限'); return; }
+  if(!confirm('确定平掉 '+account+' 的全部持仓？')) return;
+  try{
+    var r=await fetch('/api/command',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'close',account:account})});
+    var d=await r.json();
+    if(!r.ok) throw new Error(d.error||'平仓失败');
+    tick();
+  }catch(e){ alert('平仓失败: '+e.message); }
+}
+async function cancelOrder(account,orderId,scope){
+  if(currentRole!=='master'){ alert('无权限'); return; }
+  var msg=(scope==='cycle')?'确定终止本周期？当前订单撤销后不再重试。':'确定终止本次下单？本周期保留，下一轮可能按规则重试。';
+  if(!confirm(msg)) return;
+  try{
+    var r=await fetch('/api/command',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'cancel',account:account,orderId:orderId,scope:scope||'order'})});
+    var d=await r.json();
+    if(!r.ok) throw new Error(d.error||'撤单失败');
+    tick();
+  }catch(err){ alert('撤单失败: '+err.message); }
+}
+document.addEventListener('change',function(e){
+  var cb=e.target;
+  if(cb && cb.tagName==='SELECT' && cb.getAttribute('data-acct-mode')){
+    setAccountMode(cb.getAttribute('data-acct-mode'),cb.value); return;
+  }
+  if(cb && cb.type==='checkbox' && cb.getAttribute('data-login-notify')!==null){
+    setLoginNotify(cb.getAttribute('data-login-notify'),cb.checked); return;
+  }
+  if(cb && cb.type==='checkbox' && cb.getAttribute('data-mode')){
+    switchMode(cb.getAttribute('data-mode'),cb.checked);
+  }
+});
+document.addEventListener('click',function(e){
+  var cl=e.target.closest('button[data-close]');
+  if(cl){ closePosition(cl.getAttribute('data-close')); return; }
+  var x=e.target.closest('button[data-cancel]');
+  if(x){ cancelOrder(x.getAttribute('data-acct'),x.getAttribute('data-cancel'),x.getAttribute('data-scope')||'order'); return; }
+  var b=e.target.closest('button[data-cmd]');
+  if(b){ sendCmd(b.getAttribute('data-acct'),b.getAttribute('data-cmd')); return; }
+  var s=e.target.closest('button[data-cfg]');
+  if(!s) return;
+  if(currentRole!=='master'){ alert('受限密码，不能修改参数'); return; }
+  var card=s.closest('.card'); var acct=s.getAttribute('data-cfg');
+  var data={account:acct};
+  card.querySelectorAll('input[data-f],select[data-f]').forEach(function(inp){ var k=inp.getAttribute('data-f'); data[k]=(k==='name'||k==='hard_stop_mode'||k==='asset'||k==='profit_boost_mode')?inp.value:Number(inp.value); });
+  fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
+    .then(async function(r){ var d=await r.json(); if(!r.ok) throw new Error(d.error||'保存失败'); setUiPaused(false); tick(); })
+    .catch(function(err){ alert('参数保存失败: '+err.message); });
+});
+tick(); setInterval(tick,5000);
+</script>
+</body>
+</html>

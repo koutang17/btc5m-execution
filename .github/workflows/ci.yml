@@ -1,0 +1,36 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: compile
+        run: python -m compileall -q src scripts
+      - name: unit tests
+        run: python -m unittest discover -s tests -v
+      - name: guard - no secrets or personal paths
+        run: |
+          set -e
+          # a webhook URL, a private key block, a GitHub token, or a real user-profile path
+          if grep -rnE 'qyapi\.weixin\.qq\.com/cgi-bin/webhook/send\?key=[0-9a-fA-F]{8}-|BEGIN [A-Z ]*PRIVATE KEY|(ghp|github_pat)_[A-Za-z0-9]{20,}|C:\\Users\\[^<]' \
+              --include="*.py" --include="*.md" --include="*.ps1" --include="*.json" --include="*.yml" . ; then
+            echo "::error::possible secret or personal path committed"; exit 1; fi
+      - name: guard - no local config committed
+        run: |
+          set -e
+          for f in config.json .env; do
+            if git ls-files --error-unmatch "$f" >/dev/null 2>&1; then
+              echo "::error::$f must not be tracked"; exit 1; fi
+          done

@@ -1,0 +1,43 @@
+# secrets
+config.json
+.secrets/
+.env
+notify_config.json
+account_config_*.json
+*credentials*
+
+# runtime state
+state/
+logs/
+data/
+predict_live_state*.json
+redeem_state*.json
+heartbeat_*.json
+account_health_*.json
+watcher*.json
+watchdog_status.json
+active_mode.json
+account_modes.json
+kelly_*.json
+login_pending*.json
+login_notify.json
+
+# data & logs
+data/
+logs/
+*.jsonl
+*.csv
+*.log
+*.log.*
+*.gz
+*.png
+!docs/**/*.png
+
+# binaries
+*.exe
+*.apk
+*.zip
+*.pyc
+__pycache__/
+node_cache/
+node_modules/
